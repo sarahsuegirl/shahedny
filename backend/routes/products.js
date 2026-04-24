@@ -5,55 +5,52 @@ const db = require('../db');
 const { verifyToken } = require('../auth');
 const router = express.Router();
 
-const { upload } = require('../cloudinary');
+const { upload, uploadBuffer } = require('../cloudinary');
 
-// Middleware to extract user from token if present (for optional auth routes)
+// Middleware to extract user from token if present
 const extractUser = (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
-    try {
-      req.user = verifyToken(authHeader.split(' ')[1]);
-    } catch (err) {}
+    try { req.user = verifyToken(authHeader.split(' ')[1]); } catch (err) {}
   }
   next();
 };
 
-// GET products (Support filtering by sellerId)
+// GET products
 router.get('/', (req, res) => {
   let products = db.get('products');
-  if (req.query.sellerId) {
-    products = products.filter(p => p.sellerId === req.query.sellerId);
-  }
+  if (req.query.sellerId) products = products.filter(p => p.sellerId === req.query.sellerId);
   res.status(200).json({ success: true, products });
 });
 
-// POST a new product — requires authentication
-router.post('/', extractUser, upload.fields([{ name: 'file', maxCount: 1 }, { name: 'coverImage', maxCount: 1 }]), (req, res) => {
-  if (!req.user) return res.status(401).json({ error: 'Unauthorized. You must be logged in to create a product.' });
-
+// POST new product
+router.post('/', extractUser, upload.fields([{ name: 'file', maxCount: 1 }, { name: 'coverImage', maxCount: 1 }]), async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'Unauthorized.' });
   const { title, price, type } = req.body;
+  if (!title || !price || !type) return res.status(400).json({ error: 'Missing fields.' });
 
-  if (!title || !price || !type) {
-    return res.status(400).json({ error: 'Missing required product fields (title, price, type).' });
+  try {
+    const fileInfo = req.files?.['file']?.[0];
+    const coverImageInfo = req.files?.['coverImage']?.[0];
+
+    const filePath = fileInfo ? await uploadBuffer(fileInfo.buffer) : null;
+    const coverImagePath = coverImageInfo ? await uploadBuffer(coverImageInfo.buffer) : null;
+
+    const newProduct = {
+      id: Date.now().toString(),
+      sellerId: req.user.id,
+      title, price: parseFloat(price), type,
+      fileName: fileInfo?.originalname || null,
+      filePath,
+      coverImagePath,
+      createdAt: new Date().toISOString()
+    };
+    db.push('products', newProduct);
+    res.status(201).json({ success: true, product: newProduct });
+  } catch (err) {
+    console.error('Product upload error:', err);
+    res.status(500).json({ error: err.message });
   }
-
-  const fileInfo = req.files && req.files['file'] ? req.files['file'][0] : null;
-  const coverImageInfo = req.files && req.files['coverImage'] ? req.files['coverImage'][0] : null;
-
-  const newProduct = {
-    id: Date.now().toString(),
-    sellerId: req.user.id, // Assign to the logged-in user!
-    title,
-    price: parseFloat(price),
-    type,
-    fileName: fileInfo ? fileInfo.filename : null,
-    filePath: fileInfo ? fileInfo.path : null,
-    coverImagePath: coverImageInfo ? coverImageInfo.path : null,
-    createdAt: new Date().toISOString()
-  };
-
-  db.push('products', newProduct);
-  res.status(201).json({ success: true, product: newProduct });
 });
 
 // DELETE a product — requires authentication and ownership

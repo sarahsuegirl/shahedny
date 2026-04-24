@@ -104,10 +104,10 @@ router.get('/by-slug/:slug', (req, res) => {
   });
 });
 
-const { upload } = require('../cloudinary');
+const { upload, uploadBuffer } = require('../cloudinary');
 
 // PUT /api/auth/profile — update user profile fields
-router.put('/profile', upload.single('profilePic'), (req, res) => {
+router.put('/profile', upload.single('profilePic'), async (req, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Not authenticated.' });
@@ -127,8 +127,8 @@ router.put('/profile', upload.single('profilePic'), (req, res) => {
     if (req.body.role) user.roleTitle = req.body.role;
     if (req.body.bio) user.bio = req.body.bio;
     
-    if (req.file) {
-      user.profilePic = req.file.path; // Direct Cloudinary secure URL!
+    if (req.file && req.file.buffer) {
+      user.profilePic = await uploadBuffer(req.file.buffer);
     }
 
     users[userIndex] = user;
@@ -136,7 +136,8 @@ router.put('/profile', upload.single('profilePic'), (req, res) => {
     
     res.status(200).json({ success: true, user: { id: user.id, name: user.name, profilePic: user.profilePic, slug: user.slug } });
   } catch (err) {
-    res.status(401).json({ error: 'Session expired.' });
+    console.error('Profile update error:', err);
+    res.status(500).json({ error: err.message || 'Server error.' });
   }
 });
 
