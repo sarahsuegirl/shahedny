@@ -1,7 +1,4 @@
 /**
- * config.js — Change API_URL here to switch between localhost and ngrok.
- *
- * For local development:     http://localhost:5000
- * For ngrok demo:            https://YOUR-NGROK-URL.ngrok-free.app
+ * config.js — Automatically uses Render in production, localhost in development.
  */
-export const API_URL = '';
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
