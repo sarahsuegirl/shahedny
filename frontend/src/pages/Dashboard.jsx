@@ -13,25 +13,33 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [overview, setOverview] = useState({ totalNet: 0, totalSales: 0 });
   const [profilePic, setProfilePic] = useState(null);
+  const [uploadStatus, setUploadStatus] = useState('');
   const fileInputRef = useRef(null);
 
   const handleAvatarUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    // Show instant preview
     setProfilePic(URL.createObjectURL(file));
-    // Upload to backend
+    setUploadStatus('Uploading...');
     const form = new FormData();
     form.append('profilePic', file);
     try {
-      await fetch(`${API_URL}/api/auth/profile`, {
+      const res = await fetch(`${API_URL}/api/auth/profile`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${sessionStorage.getItem('shahedny_token')}` },
         body: form
       });
+      const data = await res.json();
+      if (data.success) {
+        setUploadStatus('✅ Photo uploaded!');
+      } else {
+        setUploadStatus('❌ Failed: ' + (data.error || 'Unknown error'));
+      }
     } catch (err) {
       console.error('Failed to upload profile pic:', err);
+      setUploadStatus('❌ Network error — is the server awake?');
     }
+    setTimeout(() => setUploadStatus(''), 4000);
   };
 
   useEffect(() => {
@@ -65,6 +73,7 @@ export default function Dashboard() {
             )}
           </div>
           <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarUpload} />
+          {uploadStatus && <p style={{ fontSize: '0.75rem', color: uploadStatus.startsWith('✅') ? '#4ade80' : '#f87171', marginTop: '-0.8rem', marginBottom: '0.8rem' }}>{uploadStatus}</p>}
           <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '0.2rem' }}>{user?.name || 'Seller User'}</h3>
           <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>{user?.email || 'user@example.com'}</p>
           <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.1)', marginBottom: '1.5rem' }} />
