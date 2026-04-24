@@ -8,6 +8,9 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Clear any old persistent token from localStorage (migration to sessionStorage)
+    localStorage.removeItem('shahedny_token');
+
     const token = sessionStorage.getItem('shahedny_token');
     if (token) {
       fetch(`${API_URL}/api/auth/me`, {
