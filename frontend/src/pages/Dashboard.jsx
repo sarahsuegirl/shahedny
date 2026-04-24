@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { API_URL } from '../config';
 import { Link, Routes, Route } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -12,6 +12,27 @@ export default function Dashboard() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [overview, setOverview] = useState({ totalNet: 0, totalSales: 0 });
+  const [profilePic, setProfilePic] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    // Show instant preview
+    setProfilePic(URL.createObjectURL(file));
+    // Upload to backend
+    const form = new FormData();
+    form.append('profilePic', file);
+    try {
+      await fetch(`${API_URL}/api/auth/profile`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('shahedny_token')}` },
+        body: form
+      });
+    } catch (err) {
+      console.error('Failed to upload profile pic:', err);
+    }
+  };
 
   useEffect(() => {
     fetch(`${API_URL}/api/payments/ledger`)
@@ -31,7 +52,19 @@ export default function Dashboard() {
         
         {/* Sidebar */}
         <div className="glass-panel" style={{ padding: '2rem', height: 'fit-content', textAlign: 'start' }}>
-          <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--accent-light-blue), var(--accent-light-purple))', marginBottom: '1.5rem' }} />
+          {/* Clickable Avatar */}
+          <div
+            onClick={() => fileInputRef.current.click()}
+            title="Click to upload profile photo"
+            style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--accent-light-blue), var(--accent-light-purple))', marginBottom: '1.5rem', cursor: 'pointer', overflow: 'hidden', position: 'relative', flexShrink: 0 }}
+          >
+            {profilePic ? (
+              <img src={profilePic} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', color: 'rgba(255,255,255,0.7)', textAlign: 'center', lineHeight: 1.3 }}>Click to<br/>upload</div>
+            )}
+          </div>
+          <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarUpload} />
           <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '0.2rem' }}>{user?.name || 'Seller User'}</h3>
           <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>{user?.email || 'user@example.com'}</p>
           <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.1)', marginBottom: '1.5rem' }} />
