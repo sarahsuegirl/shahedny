@@ -26,7 +26,7 @@ export default function Dashboard() {
     try {
       await fetch(`${API_URL}/api/auth/profile`, {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('shahedny_token')}` },
+        headers: { 'Authorization': `Bearer ${sessionStorage.getItem('shahedny_token')}` },
         body: form
       });
     } catch (err) {

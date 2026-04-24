@@ -8,7 +8,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('shahedny_token');
+    const token = sessionStorage.getItem('shahedny_token');
     if (token) {
       fetch(`${API_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -16,9 +16,9 @@ export function AuthProvider({ children }) {
         .then(res => res.json())
         .then(data => {
           if (data.success) setUser(data.user);
-          else localStorage.removeItem('shahedny_token');
+          else sessionStorage.removeItem('shahedny_token');
         })
-        .catch(() => localStorage.removeItem('shahedny_token'))
+        .catch(() => sessionStorage.removeItem('shahedny_token'))
         .finally(() => setLoading(false));
     } else {
       setLoading(false);
@@ -26,16 +26,16 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = (token, userData) => {
-    localStorage.setItem('shahedny_token', token);
+    sessionStorage.setItem('shahedny_token', token);
     setUser(userData);
   };
 
   const logout = () => {
-    localStorage.removeItem('shahedny_token');
+    sessionStorage.removeItem('shahedny_token');
     setUser(null);
   };
 
-  const getToken = () => localStorage.getItem('shahedny_token');
+  const getToken = () => sessionStorage.getItem('shahedny_token');
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout, getToken }}>

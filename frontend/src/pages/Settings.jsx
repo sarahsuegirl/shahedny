@@ -51,7 +51,7 @@ export default function Settings() {
       // NOTE: getToken is expected from AuthContext
       const response = await fetch(`${API_URL}/api/auth/profile`, {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('shahedny_token')}` },
+        headers: { 'Authorization': `Bearer ${sessionStorage.getItem('shahedny_token')}` },
         body: form
       });
       const data = await response.json();
